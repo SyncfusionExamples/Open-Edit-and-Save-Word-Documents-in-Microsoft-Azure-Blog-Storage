@@ -1,16 +1,35 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
     DocumentEditorContainerComponent, Toolbar, CustomToolbarItemModel
 } from '@syncfusion/ej2-react-documenteditor';
 import AzureFileManager from './AzureFileManager.tsx';
 import { ClickEventArgs } from '@syncfusion/ej2-navigations/src/toolbar/toolbar';
+import { DialogUtility } from '@syncfusion/ej2-react-popups';
 
+// Inject Document Editor toolbar dependencies
 DocumentEditorContainerComponent.Inject(Toolbar);
 
 function DocumentEditor() {
+    // Backend API host URL for document operations
     const hostUrl: string = "http://localhost:62869/";
-    let container: DocumentEditorContainerComponent;
+    // Reference to document editor container component
+    const containerRef = useRef<DocumentEditorContainerComponent>(null);
+    // Reference for dialog component
+    let dialogObj: any;
+    // State to hold the current document name
+    const [currentDocName, setCurrentDocName] = useState<string>('None');
+    // Track document modifications for auto-save functionality
     const contentChanged = React.useRef(false);
+
+    // Custom toolbar button configuration for "New" document
+    const newToolItem: CustomToolbarItemModel = {
+        prefixIcon: "e-de-ctnr-new",
+        tooltipText: "New",
+        text: "New",
+        id: "CreateNewDoc"
+    };
+
+    // Custom toolbar button configuration for opening the Azure file manager
     const openToolItem: CustomToolbarItemModel = {
         prefixIcon: "e-de-ctnr-open",
         tooltipText: "Open Azure file manager",
@@ -18,6 +37,7 @@ function DocumentEditor() {
         id: "OpenAzureFileManager"
     };
 
+    // Custom toolbar button configuration for downloading the document
     const downloadToolItem: CustomToolbarItemModel = {
         prefixIcon: "e-de-ctnr-download",
         tooltipText: "Download",
@@ -25,15 +45,20 @@ function DocumentEditor() {
         id: "DownloadToLocal"
     };
 
-    const toolbarItems = ['New', openToolItem, downloadToolItem, 'Separator', 'Undo', 'Redo', 'Separator', 'Image', 'Table', 'Hyperlink', 'Bookmark', 'TableOfContents', 'Separator', 'Header', 'Footer', 'PageSetup', 'PageNumber', 'Break', 'InsertFootnote', 'InsertEndnote', 'Separator', 'Find', 'Separator', 'Comments', 'TrackChanges', 'Separator', 'LocalClipboard', 'RestrictEditing', 'Separator', 'FormFields', 'UpdateFields', 'ContentControl']
+    // Combined toolbar items including custom buttons and built-in features
+    const toolbarItems = [newToolItem, openToolItem, downloadToolItem, 'Separator', 'Undo', 'Redo', 'Separator', 'Image', 'Table', 'Hyperlink', 'Bookmark', 'TableOfContents', 'Separator', 'Header', 'Footer', 'PageSetup', 'PageNumber', 'Break', 'InsertFootnote', 'InsertEndnote', 'Separator', 'Find', 'Separator', 'Comments', 'TrackChanges', 'Separator', 'LocalClipboard', 'RestrictEditing', 'Separator', 'FormFields', 'UpdateFields', 'ContentControl']
 
+    // Automatically saves document to Azure storage
     const autoSaveDocument = (): void => {
-        container.documentEditor.saveAsBlob('Docx').then((blob: Blob) => {
+        if (!containerRef.current) return;
+        // Save as Blob using Docx format
+        containerRef.current.documentEditor.saveAsBlob('Docx').then((blob: Blob) => {
             let exportedDocument = blob;
             let formData: FormData = new FormData();
-            formData.append('documentName', container.documentEditor.documentName);
+            formData.append('documentName', containerRef.current.documentEditor.documentName);
             formData.append('data', exportedDocument);
             let req = new XMLHttpRequest();
+            // Send document to backend API for Azure storage
             req.open(
                 'POST',
                 hostUrl + 'api/AzureFileProvider/SaveToAzure',
@@ -42,12 +67,14 @@ function DocumentEditor() {
             req.onreadystatechange = () => {
                 if (req.readyState === 4 && (req.status === 200 || req.status === 304)) {
                     // Auto save completed
+                    // Success handler can be added here if needed
                 }
             };
             req.send(formData);
         });
     };
 
+    // Runs auto-save every second when content changes are detected
     React.useEffect(() => {
         const intervalId = setInterval(() => {
             if (contentChanged.current) {
@@ -58,21 +85,37 @@ function DocumentEditor() {
         return () => clearInterval(intervalId);
     });
 
+    // Handles document content change detection
     const handleContentChange = (): void => {
         contentChanged.current = true; // Set the ref's current value
     };
 
+    // Handles document editor toolbar button click events
     const handleToolbarClick = (args: ClickEventArgs): void => {
+        // Get a reference to the file manager open button
         const openButton = document.getElementById('openAzureFileManager');
-        const documentName = container.documentEditor.documentName || 'Untitled';
+        // Get the current document name from the editor
+        let documentName = containerRef.current.documentEditor.documentName;
+        // Remove any extension from the document name using regex
+        const baseDocName = documentName.replace(/\.[^/.]+$/, '');
+        // Always check if containerRef.current exists before using it
+        if (!containerRef.current) return;
         switch (args.item.id) {
             case 'OpenAzureFileManager':
+                // Programmatically trigger Azure file manager
                 if (openButton) {
+                    // save the changes before new document opening 
+                    autoSaveDocument();
                     openButton.click();
                 }
                 break;
             case 'DownloadToLocal':
-                container.documentEditor.save(documentName, 'Docx')
+                // Initiate client-side download
+                containerRef.current.documentEditor.save(baseDocName, 'Docx');
+                break;
+            case 'CreateNewDoc':
+                // Create new document workflow
+                promptForFilename();
                 break;
             default:
                 break;
@@ -81,7 +124,13 @@ function DocumentEditor() {
 
     // Callback function to load file selected in the file manager
     const loadFileFromFileManager = (filePath: string, fileType: string, filenName: string): void => {
-        container.documentEditor.documentName = filenName;
+        if (!containerRef.current) {
+            console.error('Document Editor is not loaded yet.');
+            return;
+        }
+        containerRef.current.documentEditor.documentName = filenName;
+        // Update state with the current document name
+        setCurrentDocName(filenName);
         if (fileType === '.docx' || fileType === '.doc' || fileType === '.txt' || fileType === '.rtf') {
             // Handle document files
             fetch(hostUrl + 'api/AzureFileProvider/GetDocument', {
@@ -101,7 +150,8 @@ function DocumentEditor() {
                     if (documentEditorDiv) {
                         documentEditorDiv.style.display = "block";
                     }
-                    container.documentEditor.open(JSON.stringify(json));
+                    // Open the document using the JSON data received
+                    containerRef.current.documentEditor.open(JSON.stringify(json));
                 })
                 .catch(error => {
                     console.error('Error loading document:', error);
@@ -111,20 +161,114 @@ function DocumentEditor() {
         }
     };
 
+    // List of default general document names
+    const defaultFilenames = ['Untitled'];
+    // Utility function to get a random default name from the list
+    const getRandomDefaultName = (): string => {
+        const randomIndex = Math.floor(Math.random() * defaultFilenames.length);
+        return defaultFilenames[randomIndex];
+    };
+
+    //  Document existence to check if a document with a given name already exists on the backend
+    const checkDocumentExists = async (filename: string): Promise<boolean> => {
+        try {
+            const response = await fetch(hostUrl + 'api/AzureFileProvider/CheckDocumentExists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+                body: JSON.stringify({ documentName: filename })
+            });
+            if (response.ok) {
+                const result = await response.json();
+                return result.exists; // Backend returns { exists: boolean }
+            }
+            return false;
+        } catch (err) {
+            console.error('Error checking document existence:', err);
+            return false;
+        }
+    };
+
+    // Prompt dialog for entering a new document filename
+    const promptForFilename = (errorMessage?: string) => {
+        const randomDefaultName = getRandomDefaultName();
+        dialogObj = DialogUtility.confirm({
+            title: 'New Document',
+            width: '300px',
+            content: `
+                <p>Enter document name:</p> 
+                <div id="errorContainer" style="color: red; margin-top: 4px;">
+                ${errorMessage ? errorMessage : ''}
+                </div>
+                <input id="inputEle" type="text" class="e-input" value="${randomDefaultName}"/>
+            `,
+            okButton: { click: handlePromptOk },
+            cancelButton: { click: handlePromptCancel },
+        });
+        // After the dialog renders, focus and select the input text.
+        setTimeout(() => {
+            const input = document.getElementById("inputEle") as HTMLInputElement;
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 100);
+    };
+
+    // Updated OK handler with existence check
+    const handlePromptOk = async () => {
+        const inputElement = document.getElementById("inputEle") as HTMLInputElement;
+        let userFilename = inputElement?.value.trim() || "Untitled";
+        const baseFilename = `${userFilename}.docx`;
+
+        // Check if the document already exists on the backend
+        const exists = await checkDocumentExists(baseFilename);
+        if (exists) {
+            // If the document exists, display an error message in the dialog
+            const errorContainer = document.getElementById("errorContainer");
+            if (errorContainer) {
+                errorContainer.innerHTML = 'Document already exists. Please choose a different name.';
+            }
+            // Re-focus the input for correction
+            if (inputElement) {
+                inputElement.focus();
+                inputElement.select();
+            }
+            return;
+        }
+
+        // Proceed with new document
+        if (dialogObj) dialogObj.hide();
+        // save the changes before new document opening 
+        // autoSaveDocument();
+        containerRef.current.documentEditor.documentName = baseFilename;
+        setCurrentDocName(baseFilename);
+        containerRef.current.documentEditor.openBlank();
+    };
+
+    // Handler for the Cancel button in the prompt dialog
+    const handlePromptCancel = () => {
+        if (dialogObj) {
+            dialogObj.hide();
+        }
+    };
+
     return (
         <div>
             <div>
                 <AzureFileManager onFileSelect={loadFileFromFileManager} />
             </div>
             <div id="document-editor-div" style={{ display: "block" }}>
+                <div id="document-header">
+                    {currentDocName || 'None'}
+                </div>
                 <DocumentEditorContainerComponent
-                    ref={(scope) => { container = scope; }}
+                    ref={containerRef}
                     id="container"
                     height={'590px'}
                     serviceUrl={hostUrl + 'api/AzureFileProvider/'}
+                    enableToolbar={true}
                     toolbarItems={toolbarItems}
                     toolbarClick={handleToolbarClick}
-                    enableToolbar={true}
                     contentChange={handleContentChange} // Listen to content changes
                 />
             </div>

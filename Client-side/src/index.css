@@ -25,7 +25,23 @@
 @import "../node_modules/@syncfusion/ej2-react-buttons/styles/material.css";
 @import "../node_modules/@syncfusion/ej2-react-popups/styles/material.css";
 
+/* Styles for the azure file manager dialog component */
 #dialog-component-sample {
-    max-height: max-content !important ;
+    max-height: max-content !important;
     top: 30px !important;
+}
+
+/* Styles for the current document header */
+#document-header {
+    padding: 8px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+    text-align: center;
+}
+
+/* Styles for the file manager open button */
+#openAzureFileManager {
+    padding: 10px 20px;
+    cursor: pointer;
+    display: none;
 }

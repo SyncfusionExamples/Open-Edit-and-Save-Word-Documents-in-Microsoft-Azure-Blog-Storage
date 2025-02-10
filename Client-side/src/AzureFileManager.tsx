@@ -3,15 +3,20 @@ import { FileManagerComponent, Inject, NavigationPane, DetailsView, Toolbar } fr
 import { DialogComponent } from '@syncfusion/ej2-react-popups';
 
 interface AzureProps {
-    onFileSelect: (filePath: string, fileType: string, fileName: string) => void; // Callback to load file in DocumentEditor
+    // Callback function triggered when a file is selected in the file manager
+    onFileSelect: (filePath: string, fileType: string, fileName: string) => void;
 }
 
+// AzureFileManager Component - Provides a file management interface for Azure storage
 const AzureFileManager: React.FC<AzureProps> = ({ onFileSelect }) => {
-    const hostUrl: string = "http://localhost:62869/";  // Adjust with the correct URL for file manager
+    // Base URL for backend API handling Azure file operations
+    const hostUrl: string = "http://localhost:62869/";
+    // State management for file manager dialog visibility
     const [showFileManager, setShowFileManager] = React.useState(true);
+    // Reference to access FileManager component methods
     let fileManagerRef = React.useRef<FileManagerComponent>(null);
 
-    // Show the file manager when open button is clicked
+    // Shows the file manager when open button is clicked and clears the previous selection item
     const handleOpenButtonClick = () => {
         // Clear the previous selection
         if (fileManagerRef.current) {
@@ -20,7 +25,7 @@ const AzureFileManager: React.FC<AzureProps> = ({ onFileSelect }) => {
         setShowFileManager(true);
     };
 
-    // Handle file open from file manager
+    // Handles file open event from file manager
     const handleFileOpen = (args: any) => {
         if (args.fileDetails.isFile) {
             const selectedPath = args.fileDetails.path || args.fileDetails.filterPath + args.fileDetails.name;
@@ -34,7 +39,7 @@ const AzureFileManager: React.FC<AzureProps> = ({ onFileSelect }) => {
 
     return (
         <div>
-            <button id = "openAzureFileManager" onClick={handleOpenButtonClick} style={{ padding: '10px 20px', cursor: 'pointer' , display: 'none'}}>
+            <button id="openAzureFileManager" onClick={handleOpenButtonClick}> 
                 Open Azure file manager
             </button>
 
