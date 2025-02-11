@@ -91,7 +91,7 @@ function DocumentEditor() {
     };
 
     // Handles document editor toolbar button click events
-    const handleToolbarClick = (args: ClickEventArgs): void => {
+    const handleToolbarItemClick = (args: ClickEventArgs): void => {
         // Get a reference to the file manager open button
         const openButton = document.getElementById('openAzureFileManager');
         // Get the current document name from the editor
@@ -115,7 +115,7 @@ function DocumentEditor() {
                 break;
             case 'CreateNewDoc':
                 // Create new document workflow
-                promptForFilename();
+                showFileNamePrompt();
                 break;
             default:
                 break;
@@ -123,20 +123,20 @@ function DocumentEditor() {
     };
 
     // Callback function to load file selected in the file manager
-    const loadFileFromFileManager = (filePath: string, fileType: string, filenName: string): void => {
+    const loadFileFromFileManager = (filePath: string, fileType: string, fileName: string): void => {
         if (!containerRef.current) {
             console.error('Document Editor is not loaded yet.');
             return;
         }
-        containerRef.current.documentEditor.documentName = filenName;
+        containerRef.current.documentEditor.documentName = fileName;
         // Update state with the current document name
-        setCurrentDocName(filenName);
+        setCurrentDocName(fileName);
         if (fileType === '.docx' || fileType === '.doc' || fileType === '.txt' || fileType === '.rtf') {
             // Handle document files
-            fetch(hostUrl + 'api/AzureFileProvider/GetDocument', {
+            fetch(hostUrl + 'api/AzureFileProvider/GetFile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-                body: JSON.stringify({ documentName: filenName })
+                body: JSON.stringify({ documentName: fileName })
             })
                 .then(response => {
                     if (response.status === 200 || response.status === 304) {
@@ -162,20 +162,20 @@ function DocumentEditor() {
     };
 
     // List of default general document names
-    const defaultFilenames = ['Untitled'];
+    const defaultFileNames = ['Untitled'];
     // Utility function to get a random default name from the list
     const getRandomDefaultName = (): string => {
-        const randomIndex = Math.floor(Math.random() * defaultFilenames.length);
-        return defaultFilenames[randomIndex];
+        const randomIndex = Math.floor(Math.random() * defaultFileNames.length);
+        return defaultFileNames[randomIndex];
     };
 
-    //  Document existence to check if a document with a given name already exists on the backend
-    const checkDocumentExists = async (filename: string): Promise<boolean> => {
+    //  Check if a document with a given name already exists on the Azure storage
+    const validateFileExistence = async (fileName: string): Promise<boolean> => {
         try {
-            const response = await fetch(hostUrl + 'api/AzureFileProvider/CheckDocumentExists', {
+            const response = await fetch(hostUrl + 'api/AzureFileProvider/ValidateFileExistence', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-                body: JSON.stringify({ documentName: filename })
+                body: JSON.stringify({ fileName: fileName })
             });
             if (response.ok) {
                 const result = await response.json();
@@ -189,11 +189,11 @@ function DocumentEditor() {
     };
 
     // Prompt dialog for entering a new document filename
-    const promptForFilename = (errorMessage?: string) => {
+    const showFileNamePrompt = (errorMessage?: string) => {
         const randomDefaultName = getRandomDefaultName();
         dialogObj = DialogUtility.confirm({
             title: 'New Document',
-            width: '300px',
+            width: '350px',
             content: `
                 <p>Enter document name:</p> 
                 <div id="errorContainer" style="color: red; margin-top: 4px;">
@@ -201,8 +201,8 @@ function DocumentEditor() {
                 </div>
                 <input id="inputEle" type="text" class="e-input" value="${randomDefaultName}"/>
             `,
-            okButton: { click: handlePromptOk },
-            cancelButton: { click: handlePromptCancel },
+            okButton: { click: handleFileNamePromptOk },
+            cancelButton: { click: handleFileNamePromptCancel },
         });
         // After the dialog renders, focus and select the input text.
         setTimeout(() => {
@@ -214,14 +214,15 @@ function DocumentEditor() {
         }, 100);
     };
 
-    // Updated OK handler with existence check
-    const handlePromptOk = async () => {
+    // Handler for the OK button in the file name prompt dialog with file existence check and save 
+	// The new file will be automatically saved to Azure Storage by the auto-save functionality, which is managed within the setInterval method.  
+    const handleFileNamePromptOk = async () => {
         const inputElement = document.getElementById("inputEle") as HTMLInputElement;
         let userFilename = inputElement?.value.trim() || "Untitled";
         const baseFilename = `${userFilename}.docx`;
 
         // Check if the document already exists on the backend
-        const exists = await checkDocumentExists(baseFilename);
+        const exists = await validateFileExistence(baseFilename);
         if (exists) {
             // If the document exists, display an error message in the dialog
             const errorContainer = document.getElementById("errorContainer");
@@ -238,15 +239,13 @@ function DocumentEditor() {
 
         // Proceed with new document
         if (dialogObj) dialogObj.hide();
-        // save the changes before new document opening 
-        // autoSaveDocument();
         containerRef.current.documentEditor.documentName = baseFilename;
         setCurrentDocName(baseFilename);
         containerRef.current.documentEditor.openBlank();
     };
 
-    // Handler for the Cancel button in the prompt dialog
-    const handlePromptCancel = () => {
+    // Handler for the Cancel button in the file name prompt dialog
+    const handleFileNamePromptCancel = () => {
         if (dialogObj) {
             dialogObj.hide();
         }
@@ -264,11 +263,11 @@ function DocumentEditor() {
                 <DocumentEditorContainerComponent
                     ref={containerRef}
                     id="container"
-                    height={'590px'}
+                    height={'650px'}
                     serviceUrl={hostUrl + 'api/AzureFileProvider/'}
                     enableToolbar={true}
                     toolbarItems={toolbarItems}
-                    toolbarClick={handleToolbarClick}
+                    toolbarClick={handleToolbarItemClick}
                     contentChange={handleContentChange} // Listen to content changes
                 />
             </div>

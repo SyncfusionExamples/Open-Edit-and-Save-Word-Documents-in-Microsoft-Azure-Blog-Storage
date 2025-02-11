@@ -28,13 +28,16 @@
 /* Styles for the azure file manager dialog component */
 #dialog-component-sample {
     max-height: max-content !important;
-    top: 30px !important;
+    top: 15% !important;
 }
 
 /* Styles for the current document header */
 #document-header {
     padding: 8px;
-    background: #f0f0f0;
+    background: #1613B0;
+	color: white;
+	font-weight: bold;
+	font-family: "Arial", sans-serif; 
     border-bottom: 1px solid #ccc;
     text-align: center;
 }
@@ -45,3 +48,17 @@
     cursor: pointer;
     display: none;
 }
+
+#CustomNew, #OpenAzureFileManager{
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+#DownloadToLocal {
+    margin-right: 6px;
+}
+
+.e-dialog.e-popup {
+    top: 20% !important;
+}
+

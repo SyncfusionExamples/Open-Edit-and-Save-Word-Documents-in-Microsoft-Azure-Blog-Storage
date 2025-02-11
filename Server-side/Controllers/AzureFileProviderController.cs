@@ -69,8 +69,8 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
         /// </summary>
         /// <param name="jsonObject">Contains document name and metadata</param>
         /// <returns>Document content as JSON or error response</returns>
-        [HttpPost("GetDocument")]
-        public async Task<IActionResult> GetDocument([FromBody] Dictionary<string, string> jsonObject)
+        [HttpPost("GetFile")]
+        public async Task<IActionResult> GetFile([FromBody] Dictionary<string, string> jsonObject)
         {
             return await _fileService.GetDocumentAsync(jsonObject);
         }
@@ -87,28 +87,28 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
 
         /// <summary>
         /// Checks if a document with the given name exists in the Azure Storage container.
-        /// Expects a JSON payload with a "documentName" property.
+        /// Expects a JSON payload with a "fileName" property.
         /// </summary>
         /// <param name="jsonObject">
-        /// A dictionary containing the document name to check. For example: { "documentName": "Document1.docx" }.
+        /// A dictionary containing the document name to check. For example: { "fileName": "Document1.docx" }.
         /// </param>
         /// <returns>
         /// An <see cref="IActionResult"/> containing a JSON object with a boolean property "exists".
         /// If the document exists, the response will be { "exists": true }; otherwise, { "exists": false }.
         /// </returns>
-        [HttpPost("CheckDocumentExists")]
-        public async Task<IActionResult> CheckDocumentExists([FromBody] Dictionary<string, string> jsonObject)
+        [HttpPost("ValidateFileExistence")]
+        public async Task<IActionResult> ValidateFileExistence([FromBody] Dictionary<string, string> jsonObject)
         {
-            // Validate that the "documentName" key exists in the request payload.
-            if (!jsonObject.TryGetValue("documentName", out var documentName) || string.IsNullOrEmpty(documentName))
+            // Validate that the "fileName" key exists in the request payload.
+            if (!jsonObject.TryGetValue("fileName", out var fileName) || string.IsNullOrEmpty(fileName))
             {
-                return BadRequest("documentName not provided");
+                return BadRequest("fileName not provided");
             }
 
             try
             {
                 // Call the service method to check if the document exists.
-                bool exists = await _fileService.CheckDocumentExistsAsync(documentName);
+                bool exists = await _fileService.CheckDocumentExistsAsync(fileName);
                 // Return a 200 OK response with the result.
                 return Ok(new { exists });
             }
