@@ -133,7 +133,7 @@ function DocumentEditor() {
         setCurrentDocName(fileName);
         if (fileType === '.docx' || fileType === '.doc' || fileType === '.txt' || fileType === '.rtf') {
             // Handle document files
-            fetch(hostUrl + 'api/AzureFileProvider/GetFile', {
+            fetch(hostUrl + 'api/AzureFileProvider/GetDocument', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json;charset=UTF-8' },
                 body: JSON.stringify({ documentName: fileName })

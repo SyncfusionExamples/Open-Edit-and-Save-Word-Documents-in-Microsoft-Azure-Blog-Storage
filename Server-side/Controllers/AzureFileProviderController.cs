@@ -69,8 +69,8 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
         /// </summary>
         /// <param name="jsonObject">Contains document name and metadata</param>
         /// <returns>Document content as JSON or error response</returns>
-        [HttpPost("GetFile")]
-        public async Task<IActionResult> GetFile([FromBody] Dictionary<string, string> jsonObject)
+        [HttpPost("GetDocument")]
+        public async Task<IActionResult> GetDocument([FromBody] Dictionary<string, string> jsonObject)
         {
             return await _fileService.GetDocumentAsync(jsonObject);
         }
