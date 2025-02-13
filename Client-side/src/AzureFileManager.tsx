@@ -21,6 +21,9 @@ const AzureFileManager: React.FC<AzureProps> = ({ onFileSelect }) => {
         // Clear the previous selection
         if (fileManagerRef.current) {
             fileManagerRef.current.clearSelection();
+            setTimeout(() => {
+                fileManagerRef.current.refreshFiles();
+            }, 100);
         }
         setShowFileManager(true);
     };
