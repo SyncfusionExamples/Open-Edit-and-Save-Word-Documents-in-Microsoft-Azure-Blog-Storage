@@ -45,6 +45,9 @@ function DocumentEditor() {
         id: "DownloadToLocal"
     };
 
+    // Customize the SystemClipboard API name
+    let settings = {systemClipboard: 'ProcessClipboardContent'}
+
     // Combined toolbar items including custom buttons and built-in features
     const toolbarItems = [newToolItem, openToolItem, downloadToolItem, 'Separator', 'Undo', 'Redo', 'Separator', 'Image', 'Table', 'Hyperlink', 'Bookmark', 'TableOfContents', 'Separator', 'Header', 'Footer', 'PageSetup', 'PageNumber', 'Break', 'InsertFootnote', 'InsertEndnote', 'Separator', 'Find', 'Separator', 'Comments', 'TrackChanges', 'Separator', 'LocalClipboard', 'RestrictEditing', 'Separator', 'FormFields', 'UpdateFields', 'ContentControl']
 
@@ -280,6 +283,7 @@ function DocumentEditor() {
                     toolbarItems={toolbarItems}
                     toolbarClick={handleToolbarItemClick}
                     contentChange={handleContentChange} // Listen to content changes
+                    serverActionSettings={settings}
                 />
             </div>
         </div>
