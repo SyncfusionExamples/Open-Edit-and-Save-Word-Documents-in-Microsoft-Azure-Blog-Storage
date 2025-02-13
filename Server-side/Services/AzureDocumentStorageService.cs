@@ -1,5 +1,4 @@
-﻿using Azure;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Syncfusion.EJ2.DocumentEditor;
-using Syncfusion.EJ2.FileManager.AzureFileProvider;
+using Syncfusion.EJ2.FileManager.AzureDocumentManager;
 using Syncfusion.EJ2.FileManager.Base;
 using System;
 using System.Collections.Generic;
@@ -16,12 +15,12 @@ using System.Threading.Tasks;
 
 namespace EJ2AzureASPCoreFileProvider.Services
 {
-    public interface IAzureFileProviderService
+    public interface IAzureDocumentStorageService
     {
-        object PerformFileOperations(FileManagerDirectoryContent args);
-        object Download(FileManagerDirectoryContent args);
-        Task<IActionResult> GetDocumentAsync(Dictionary<string, string> jsonObject);
-        Task SaveToAzureAsync(IFormCollection data);
+        object ManageDocument(FileManagerDirectoryContent args);
+        object DownloadDocument(FileManagerDirectoryContent args);
+        Task<IActionResult> FetchDocumentAsync(Dictionary<string, string> jsonObject);
+        Task UploadDocumentAsync(IFormCollection data);
         Task<bool> CheckDocumentExistsAsync(string documentName);
 
     }
@@ -29,23 +28,23 @@ namespace EJ2AzureASPCoreFileProvider.Services
     /// <summary>
     /// Service for handling Azure storage operations using Syncfusion components
     /// </summary>
-    public class AzureFileProviderService : IAzureFileProviderService
+    public class AzureDocumentStorageService : IAzureDocumentStorageService
     {
         private readonly string _storageConnectionString;
         private readonly string _accountName;
         private readonly string _accountKey;
         private readonly string _containerName;
-        private readonly ILogger<AzureFileProviderService> _logger;
-        private readonly AzureFileProvider _fileProvider;
+        private readonly ILogger<AzureDocumentStorageService> _logger;
+        private readonly AzureDocumentManager _fileProvider;
 
         /// <summary>
         /// Initializes Azure storage configuration and file provider
         /// </summary>
         /// <param name="configuration">Application configuration settings</param>
         /// <param name="logger">Logger instance for error tracking</param>
-        public AzureFileProviderService(
+        public AzureDocumentStorageService(
             IConfiguration configuration,
-            ILogger<AzureFileProviderService> logger)
+            ILogger<AzureDocumentStorageService> logger)
         {
             // Retrieve necessary configuration values for connecting to Azure storage.
             _storageConnectionString = configuration["connectionString"];
@@ -55,7 +54,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
             _logger = logger;
 
             // Initialize Syncfusion Azure File Provider instance.
-            _fileProvider = new AzureFileProvider();
+            _fileProvider = new AzureDocumentManager();
 
             // Define the base path and file path for the blob storage.
             var basePath = $"https://documenteditorstorage.blob.core.windows.net/{_containerName}";
@@ -80,12 +79,12 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// <param name="args">Operation parameters including action type and paths</param>
         /// <returns>Operation result in camelCase format</returns>
         /// <exception cref="Exception">Thrown for Azure storage operation failures</exception>
-        public object PerformFileOperations(FileManagerDirectoryContent args)
+        public object ManageDocument(FileManagerDirectoryContent args)
         {
             try
             {
                 // Normalize the incoming paths to ensure they are in the expected format.
-                NormalizePaths(ref args);
+                NormalizeDocumentPaths(ref args);
                 // Determine the action and execute the corresponding method on the file provider.
                 return args.Action switch
                 {
@@ -108,34 +107,11 @@ namespace EJ2AzureASPCoreFileProvider.Services
         }
 
         /// <summary>
-        /// Handles file download operations from Azure file manager
-        /// </summary>
-        /// <param name="args">Download parameters including target paths</param>
-        /// <returns>File stream result or error response</returns>
-        /// <exception cref="Exception">Thrown for download failures</exception>
-        public object Download(FileManagerDirectoryContent args)
-        {
-            try
-            {
-                // Normalize paths before processing the download operation.
-                NormalizePaths(ref args);
-                // Delegate the download operation to the file provider.
-                return _fileProvider.Download(args.Path, args.Names, args.Data);
-            }
-            catch (Exception ex)
-            {
-                // Log any errors that occur during the download process.
-                _logger.LogError(ex, "Download operation failed");
-                throw;
-            }
-        }
-
-        /// <summary>
         /// Retrieves a Word document from Azure and converts it to JSON format
         /// </summary>
         /// <param name="jsonObject">Contains document name for lookup</param>
         /// <returns>Word document content in JSON format</returns>
-        public async Task<IActionResult> GetDocumentAsync(Dictionary<string, string> jsonObject)
+        public async Task<IActionResult> FetchDocumentAsync(Dictionary<string, string> jsonObject)
         {
             MemoryStream stream = new MemoryStream();
             try
@@ -143,9 +119,9 @@ namespace EJ2AzureASPCoreFileProvider.Services
                 // Extract the document name from the provided JSON object.
                 var documentName = jsonObject["documentName"];
                 // Build the blob path for the document.
-                var blobPath = GetBlobPath(documentName);
+                var blobPath = GenerateDocumentBlobPath(documentName);
                 // Get a reference to the blob client for the specified document.
-                var blobClient = GetBlobClient(blobPath);
+                var blobClient = CreateBlobClient(blobPath);
                 // Check if the blob exists in the container.
                 if (await blobClient.ExistsAsync())
                 {
@@ -177,22 +153,45 @@ namespace EJ2AzureASPCoreFileProvider.Services
         }
 
         /// <summary>
+        /// Handles file download operations from Azure file manager
+        /// </summary>
+        /// <param name="args">Download parameters including target paths</param>
+        /// <returns>File stream result or error response</returns>
+        /// <exception cref="Exception">Thrown for download failures</exception>
+        public object DownloadDocument(FileManagerDirectoryContent args)
+        {
+            try
+            {
+                // Normalize paths before processing the download operation.
+                NormalizeDocumentPaths(ref args);
+                // Delegate the download operation to the file provider.
+                return _fileProvider.Download(args.Path, args.Names, args.Data);
+            }
+            catch (Exception ex)
+            {
+                // Log any errors that occur during the download process.
+                _logger.LogError(ex, "Download operation failed");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Saves a document file to Azure storage
         /// </summary>
         /// <param name="data">Form data containing the file to save</param>
         /// <exception cref="Exception">Thrown for save failures</exception>
-        public async Task SaveToAzureAsync(IFormCollection data)
+        public async Task UploadDocumentAsync(IFormCollection data)
         {
             try
             {
                 // Retrieve the first file from the form data.
                 var file = data.Files[0];
                 // Get the document name from the form collection.
-                var documentName = GetValue(data, "documentName");
+                var documentName = ExtractFormValue(data, "documentName");
                 // Construct the blob path based on the document name.
-                var blobPath = GetBlobPath(documentName);
+                var blobPath = GenerateDocumentBlobPath(documentName);
                 // Check if the blob already exists.
-                var blobClient = GetBlobClient(blobPath);
+                var blobClient = CreateBlobClient(blobPath);
                 if(blobClient.Exists())
                 {
                     // Upload the file content to the existing blob.
@@ -221,7 +220,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// Normalizes Azure blob paths for Syncfusion file provider compatibility
         /// </summary>
         /// <param name="args">FileManagerDirectoryContent reference to modify</param>
-        private void NormalizePaths(ref FileManagerDirectoryContent args)
+        private void NormalizeDocumentPaths(ref FileManagerDirectoryContent args)
         {
             if (string.IsNullOrEmpty(args.Path)) return;
 
@@ -240,9 +239,9 @@ namespace EJ2AzureASPCoreFileProvider.Services
         public async Task<bool> CheckDocumentExistsAsync(string documentName)
         {
             // Construct the blob path for the document based on the document name.
-            var blobPath = GetBlobPath(documentName);
+            var blobPath = GenerateDocumentBlobPath(documentName);
             // Get the BlockBlobClient for the specified blob path.
-            var blobClient = GetBlobClient(blobPath);
+            var blobClient = CreateBlobClient(blobPath);
             // Use the Azure Blob SDK to check if the blob exists.
             return await blobClient.ExistsAsync();
         }
@@ -252,7 +251,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// </summary>
         /// <param name="blobPath">The full path to the blob within the container</param>
         /// <returns>Configured BlockBlobClient instance</returns>
-        private BlockBlobClient GetBlobClient(string blobPath)
+        private BlockBlobClient CreateBlobClient(string blobPath)
         {
             var serviceClient = new BlobServiceClient(_storageConnectionString);
             var containerClient = serviceClient.GetBlobContainerClient(_containerName);
@@ -264,7 +263,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// </summary>
         /// <param name="documentName">Name of the target document</param>
         /// <returns>Full blob path in format 'Files/{documentName}'</returns>
-        private string GetBlobPath(string documentName) => $"Files/{documentName}";
+        private string GenerateDocumentBlobPath(string documentName) => $"Files/{documentName}";
 
         /// <summary>
         /// Safely retrieves a value from form collection data
@@ -272,7 +271,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// <param name="data">Form collection containing request data</param>
         /// <param name="key">Key to look up in the form data</param>
         /// <returns>First value for the key if exists, otherwise empty string</returns>
-        private static string GetValue(IFormCollection data, string key) =>
+        private static string ExtractFormValue(IFormCollection data, string key) =>
             data.TryGetValue(key, out var values) && values.Count > 0
                 ? values[0]
                 : string.Empty;

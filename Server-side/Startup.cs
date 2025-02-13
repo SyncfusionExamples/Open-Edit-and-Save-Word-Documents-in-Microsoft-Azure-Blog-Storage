@@ -31,7 +31,7 @@ namespace EJ2FileManagerService
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddScoped<IAzureFileProviderService, AzureFileProviderService>();
+            services.AddScoped<IAzureDocumentStorageService, AzureDocumentStorageService>();
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAllOrigins", builder =>

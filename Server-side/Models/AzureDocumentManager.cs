@@ -2,23 +2,19 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Syncfusion.EJ2.FileManager.Base;
-using System.Text;
-using Azure.Storage.Blobs.Specialized;
 using System.Text.Json;
 
-namespace Syncfusion.EJ2.FileManager.AzureFileProvider
+namespace Syncfusion.EJ2.FileManager.AzureDocumentManager
 {
-    public class AzureFileProvider
+    public class AzureDocumentManager
     {
         List<FileManagerDirectoryContent> directoryContentItems = new List<FileManagerDirectoryContent>();
         BlobContainerClient container;
