@@ -107,11 +107,15 @@ function DocumentEditor() {
                     // save the changes before new document opening 
                     autoSaveDocument();
                     openButton.click();
+                    // Sets the focus to the document editor within the current container reference
+                    containerRef.current.documentEditor.focusIn();
                 }
                 break;
             case 'DownloadToLocal':
                 // Initiate client-side download
                 containerRef.current.documentEditor.save(baseDocName, 'Docx');
+                // Sets the focus to the document editor within the current container reference
+                containerRef.current.documentEditor.focusIn();
                 break;
             case 'CreateNewDoc':
                 // Create new document workflow
@@ -194,6 +198,7 @@ function DocumentEditor() {
         dialogObj = DialogUtility.confirm({
             title: 'New Document',
             width: '350px',
+            cssClass: 'custom-dialog-prompt',
             content: `
                 <p>Enter document name:</p> 
                 <div id="errorContainer" style="color: red; margin-top: 4px;">
@@ -212,6 +217,12 @@ function DocumentEditor() {
                 input.select();
             }
         }, 100);
+        dialogObj.close = () => {
+            setTimeout(() => {
+                // Sets the focus to the document editor within the current container reference
+                containerRef.current.documentEditor.focusIn();
+            }, 100);
+        };
     };
 
     // Handler for the OK button in the file name prompt dialog with file existence check and save 

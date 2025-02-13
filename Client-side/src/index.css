@@ -58,7 +58,7 @@
     margin-right: 6px;
 }
 
-.e-dialog.e-popup {
-    top: 20% !important;
+.custom-dialog-prompt.e-dialog.e-popup {
+    top: 30% !important;
 }
 
