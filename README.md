@@ -1,2 +1,2 @@
-# Open, Edit, and Save Word Documents in Microsoft Azure Blog Storage
-This example illustrates how to open, edit, and save Word documents in Microsoft Azure Blob Storage using the Syncfusion Word Processor (a.k.a) Document Editor.
+# Managing Word Documents in React: Open, Edit, and Auto-Save with Azure Blob Storage
+This example demonstrates how to manage Word documents in a React application by integrating Azure Blob Storage with Syncfusion’s Word Processor (a.k.a) Document Editor. Learn how to effortlessly open, edit, and auto-save Word documents in the cloud, ensuring a seamless and efficient document management experience.
