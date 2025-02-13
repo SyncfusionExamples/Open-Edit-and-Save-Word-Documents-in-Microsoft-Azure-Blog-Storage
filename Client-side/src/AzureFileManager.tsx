@@ -63,8 +63,8 @@ const AzureFileManager: React.FC<AzureProps> = ({ onFileSelect }) => {
                     id="azure-file"
                     ref={fileManagerRef}
                     ajaxSettings={{
-                        url: hostUrl + 'api/AzureFileProvider/AzureFileOperations',
-                        downloadUrl: hostUrl + 'api/AzureFileProvider/AzureDownload'
+                        url: hostUrl + 'api/AzureDocumentStorage/ManageDocument',
+                        downloadUrl: hostUrl + 'api/AzureDocumentStorage/DownloadDocument'
                     }}
                     toolbarSettings={{
                         items: ['SortBy', 'Copy', 'Paste', 'Delete', 'Refresh', 'Download', 'Selection', 'View', 'Details']

@@ -64,7 +64,7 @@ function DocumentEditor() {
             // Send document to backend API for Azure storage
             req.open(
                 'POST',
-                hostUrl + 'api/AzureFileProvider/SaveToAzure',
+                hostUrl + 'api/AzureDocumentStorage/UploadDocument',
                 true
             );
             req.onreadystatechange = () => {
@@ -140,7 +140,7 @@ function DocumentEditor() {
         setCurrentDocName(fileName);
         if (fileType === '.docx' || fileType === '.doc' || fileType === '.txt' || fileType === '.rtf') {
             // Handle document files
-            fetch(hostUrl + 'api/AzureFileProvider/GetDocument', {
+            fetch(hostUrl + 'api/AzureDocumentStorage/FetchDocument', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json;charset=UTF-8' },
                 body: JSON.stringify({ documentName: fileName })
@@ -177,9 +177,9 @@ function DocumentEditor() {
     };
 
     //  Check if a document with a given name already exists on the Azure storage
-    const validateFileExistence = async (fileName: string): Promise<boolean> => {
+    const checkDocumentExistence = async (fileName: string): Promise<boolean> => {
         try {
-            const response = await fetch(hostUrl + 'api/AzureFileProvider/ValidateFileExistence', {
+            const response = await fetch(hostUrl + 'api/AzureDocumentStorage/CheckDocumentExistence', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json;charset=UTF-8' },
                 body: JSON.stringify({ fileName: fileName })
@@ -236,7 +236,7 @@ function DocumentEditor() {
         const baseFilename = `${userFilename}.docx`;
 
         // Check if the document already exists on the backend
-        const exists = await validateFileExistence(baseFilename);
+        const exists = await checkDocumentExistence(baseFilename);
         if (exists) {
             // If the document exists, display an error message in the dialog
             const errorContainer = document.getElementById("errorContainer");
@@ -278,7 +278,7 @@ function DocumentEditor() {
                     ref={containerRef}
                     id="container"
                     height={'650px'}
-                    serviceUrl={hostUrl + 'api/AzureFileProvider/'}
+                    serviceUrl={hostUrl + 'api/AzureDocumentStorage/'}
                     enableToolbar={true}
                     toolbarItems={toolbarItems}
                     toolbarClick={handleToolbarItemClick}

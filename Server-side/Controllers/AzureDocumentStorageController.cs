@@ -18,15 +18,15 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
     [EnableCors("AllowAllOrigins")]
     public class AzureDocumentStorageController : ControllerBase
     {
-        private readonly IAzureDocumentStorageService _fileService;
+        private readonly IAzureDocumentStorageService _documentStorageService;
 
         /// <summary>
         /// Constructor injecting the file provider service dependency.
         /// </summary>
-        /// <param name="fileService">Service for performing file operations</param>
-        public AzureDocumentStorageController(IAzureDocumentStorageService fileService)
+        /// <param name="documentStorageService">Service for performing file operations</param>
+        public AzureDocumentStorageController(IAzureDocumentStorageService documentStorageService)
         {
-            _fileService = fileService;
+            _documentStorageService = documentStorageService;
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
         [HttpPost("ManageDocument")]
         public object ManageDocument([FromBody] FileManagerDirectoryContent args)
         {
-            return _fileService.ManageDocument(args);
+            return _documentStorageService.ManageDocument(args);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
         [HttpPost("FetchDocument")]
         public async Task<IActionResult> FetchDocument([FromBody] Dictionary<string, string> jsonObject)
         {
-            return await _fileService.FetchDocumentAsync(jsonObject);
+            return await _documentStorageService.FetchDocumentAsync(jsonObject);
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
                 };
                 // Deserialize the JSON string to a FileManagerDirectoryContent object
                 FileManagerDirectoryContent args = JsonSerializer.Deserialize<FileManagerDirectoryContent>(downloadInput, options);
-                return _fileService.DownloadDocument(args);
+                return _documentStorageService.DownloadDocument(args);
             }
             // Return null if input is not provided
             return null;
@@ -81,7 +81,7 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
         [HttpPost("UploadDocument")]
         public async Task UploadDocument(IFormCollection data)
         {
-            await _fileService.UploadDocumentAsync(data);
+            await _documentStorageService.UploadDocumentAsync(data);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace EJ2AzureASPCoreFileProvider.Controllers
             try
             {
                 // Call the service method to check if the document exists.
-                bool exists = await _fileService.CheckDocumentExistsAsync(fileName);
+                bool exists = await _documentStorageService.CheckDocumentExistsAsync(fileName);
                 // Return a 200 OK response with the result.
                 return Ok(new { exists });
             }
