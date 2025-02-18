@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
         private readonly string _containerName;
         private readonly ILogger<AzureDocumentStorageService> _logger;
         private readonly AzureDocumentManager _fileProvider;
+        private readonly string _rootFolderName;
 
         /// <summary>
         /// Initializes Azure storage configuration and file provider
@@ -52,13 +54,22 @@ namespace EJ2AzureASPCoreFileProvider.Services
             _accountKey = configuration["accountKey"];
             _containerName = configuration["containerName"];
             _logger = logger;
-
+            //Folder name created inside the container
+            _rootFolderName = "Files";
             // Initialize Syncfusion Azure File Provider instance.
             _fileProvider = new AzureDocumentManager();
 
-            // Define the base path and file path for the blob storage.
+            // Define the base URL for the blob storage using the container name.
             var basePath = $"https://documenteditorstorage.blob.core.windows.net/{_containerName}";
-            var filePath = $"{basePath}/Files";
+            // Define the file path by appending the root folder name to the base path.
+            var filePath = $"{basePath}/{_rootFolderName}";
+            // Remove any '../' sequences from the paths to prevent directory traversal vulnerabilities.
+            basePath = basePath.Replace("../", "");
+            filePath = filePath.Replace("../", "");
+            // Ensure basePath ends with exactly one trailing slash.
+            basePath = (basePath.Substring(basePath.Length - 1) != "/") ? basePath + "/" : basePath.TrimEnd(new[] { '/', '\\' }) + "/";
+            // Ensure filePath does not end with a trailing slash.
+            filePath = (filePath.Substring(filePath.Length - 1) == "/") ? filePath.TrimEnd(new[] { '/', '\\' }) : filePath;
 
             // Set the base blob container path for the file provider.
             _fileProvider.SetBlobContainer(basePath, filePath);
@@ -69,7 +80,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
             //For example 
             //_fileProvider.setBlobContainer("https://azure_service_account.blob.core.windows.net/{containerName}/", "https://azure_service_account.blob.core.windows.net/{containerName}/Files");
             //_fileProvider.RegisterAzure("azure_service_account", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "containerName");
-            // Note: we need to create a Files folder inside the container and the documents folder inside the folder can be accessed.
+            // Note: we need to create a Root folder inside the container and the documents inside the root folder can be accessed.
             //---------
         }
 
@@ -226,7 +237,7 @@ namespace EJ2AzureASPCoreFileProvider.Services
 
             // Define the base path used in the blob storage URL.
             var basePath = $"https://documenteditorstorage.blob.core.windows.net/{_containerName}/";
-            var originalPath = $"{basePath}Files".Replace(basePath, "");
+            var originalPath = $"{basePath}{_rootFolderName}".Replace(basePath, "");
 
             args.Path = args.Path.Contains(originalPath)
                 ? args.Path.Replace("//", "/")
@@ -262,8 +273,8 @@ namespace EJ2AzureASPCoreFileProvider.Services
         /// Generates the full blob path by combining the document name with the base file path
         /// </summary>
         /// <param name="documentName">Name of the target document</param>
-        /// <returns>Full blob path in format 'Files/{documentName}'</returns>
-        private string GenerateDocumentBlobPath(string documentName) => $"Files/{documentName}";
+        /// <returns>Full blob path in format 'RootFolderName/{documentName}'</returns>
+        private string GenerateDocumentBlobPath(string documentName) => $"{_rootFolderName}/{documentName}";
 
         /// <summary>
         /// Safely retrieves a value from form collection data

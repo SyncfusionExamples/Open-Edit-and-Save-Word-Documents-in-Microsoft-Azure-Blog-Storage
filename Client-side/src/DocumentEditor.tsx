@@ -121,8 +121,13 @@ function DocumentEditor() {
                 containerRef.current.documentEditor.focusIn();
                 break;
             case 'CreateNewDoc':
-                // Create new document workflow
-                showFileNamePrompt();
+                // If dialogObj exists, show the dialog; otherwise, prompt for a file name.
+                if(dialogObj) {
+                    dialogObj.show(); // Display the dialog.
+                }
+                else {
+                    showFileNamePrompt(); // Prompt the user for a file name.
+                }
                 break;
             default:
                 break;
