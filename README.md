@@ -8,7 +8,7 @@ This example demonstrates how to manage Word documents in a React application by
 
 - **Documentation:**   [Syncfusion® Word Processor](https://help.syncfusion.com/document-processing/word/word-processor/react/getting-started) 
 
-- **Online demo:**   [Syncfusion® Word Processor - Demo](https://ej2.syncfusion.com/react/demos/) 
+- **Online demo:**   [Syncfusion® Word Processor - Demo](https://document.syncfusion.com/#/docx-editor-sdk) 
 
 # Support and feedback 
 
